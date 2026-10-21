@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thomas Gould - madebytommo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #ffffff;
+            overflow: hidden; 
+        }
+        #scroll-viewport {
+            width: 100vw;
+            height: 100vh;
+            overflow: auto;
+            cursor: grab;
+            scroll-behavior: smooth;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        #scroll-viewport::-webkit-scrollbar {
+            display: none;
+        }
+        #scroll-viewport:active {
+            cursor: grabbing;
+        }
+        #giant-canvas {
+            position: relative;
+            width: 4000px;  
+            height: 4000px; 
+            background-size: 40px 40px; 
+        }
+        .project-card {
+            position: absolute;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.6s, scale 0.6s;
+            will-change: transform, opacity;
+        }
+        .project-card:hover {
+    transform: var(--current-transform) scale(1.04) !important;
+    z-index: 10; /* Bring hovered item to the front */
+}
+/* Keep only this safe fallback in your <style> tag */
+video::backdrop {
+    background-color: #000000 !important;
+}
+    </style>
+</head>
+<body class="text-black font-sans antialiased">
+
+<!-- TOP HEADER BAR -->
+<header class="fixed top-0 left-0 w-full z-40 bg-transparent py-6 px-6 md:px-8 flex items-center justify-between pointer-events-none">
+    
+    <!-- 1. TOP LEFT: Search Bar & Sub-Tag Active Indicator -->
+    <div class="flex items-center gap-3 pointer-events-auto">
+        <div class="relative w-48 sm:w-64">
+            <input 
+                type="text" 
+                id="project-search" 
+                placeholder="Search" 
+                class="w-full bg-white/70 backdrop-blur-md text-sm px-4 py-2 rounded-full border border-black/5 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#89F336] transition-all shadow-md"
+            >
+        </div>
+
+        <div id="active-tag-indicator" class="hidden items-center gap-2 bg-lime-500/20 border border-lime-500/30 px-3 py-1.5 rounded-full text-xs text-lime-600 dark:text-lime-300 animate-pulse">
+            <span id="active-tag-text">Tag</span>
+            <button id="clear-tag-btn" class="hover:text-black font-bold ml-1">✕</button>
+        </div>
+    </div>
+
+    <!-- 2. TOP CENTER: Main Category Navigation -->
+    <nav id="nav-tabs" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex flex-wrap justify-center gap-1.5 md:gap-3 bg-white/70 backdrop-blur-md p-1.5 rounded-full shadow-2xl pointer-events-auto border border-black/5">
+        <button data-category="all" class="nav-btn px-5 py-2 rounded-full text-sm font-semibold tracking-wide transition-all bg-[#89F336] text-black">All Work</button>
+        <button data-category="commercial" class="nav-btn px-5 py-2 rounded-full text-sm font-semibold tracking-wide transition-all text-zinc-500 hover:text-black">Commercial</button>
+        <button data-category="concept" class="nav-btn px-5 py-2 rounded-full text-sm font-semibold tracking-wide transition-all text-zinc-500 hover:text-black">Concept</button>
+        <button data-category="craft" class="nav-btn px-5 py-2 rounded-full text-sm font-semibold tracking-wide transition-all text-zinc-500 hover:text-black">Craft</button> 
+    </nav>
+
+   <!-- 3. TOP RIGHT: Recenter Button & Scroll Hint -->
+<div class="flex items-center gap-4 pointer-events-auto">
+    <span class="text-xs tracking-widest text-zinc-500 uppercase hidden lg:inline-block">Scroll to explore</span>
+    
+    <button 
+        id="recenter-btn" 
+        class="bg-white/70 hover:bg-white text-zinc-900 border border-black/5 px-5 py-2 rounded-full text-xs font-semibold tracking-wide uppercase transition-all shadow-md hover:shadow-lg flex items-center gap-2 backdrop-blur-md active:scale-95"
+    >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9V4.5M15 9h4.5M15 9l5.25-5.25M15 15v4.5M15 15h4.5M15 15l5.25 5.25" />
+        </svg>
+        <span>Recenter</span>
+    </button>
+</div>
+
+</header>
+
+<!-- MAIN VIEWPORT CANVAS -->
+<main id="scroll-viewport">
+    <div id="giant-canvas"></div>
+</main>
+
+<!-- SLIDE-OUT DETAIL PANEL -->
+<aside id="side-panel" class="fixed top-0 right-0 h-full w-full sm:w-[450px] md:w-[550px] z-50 bg-white border-l border-black/10 translate-x-full transition-transform duration-500 ease-out flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.15)] text-zinc-800">
+    <div class="p-6 border-b border-black/5 flex justify-between items-center">
+        <span id="panel-category" class="text-xs font-bold tracking-widest uppercase text-zinc-500">CATEGORY</span>
+        <button id="close-panel-btn" class="text-zinc-500 hover:text-black bg-black/5 hover:bg-black/10 p-2.5 rounded-full transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+
+    <div class="flex-grow overflow-y-auto p-8 space-y-8">
+        <div class="rounded-xl overflow-hidden bg-white w-full flex items-center justify-center">
+            <img id="panel-image" src="" alt="" class="w-full max-h-[50vh] object-contain">
+        </div>
+        <div>
+            <h2 id="panel-title" class="text-3xl font-bold tracking-tight text-zinc-900 mb-4">Project Title</h2>
+            <p id="panel-description" class="text-zinc-600 leading-relaxed text-sm whitespace-pre-line">Detailed background data.</p>
+        </div>
+
+        <div class="space-y-4">
+            <h4 id="gallery-heading" class="text-xs uppercase tracking-widest font-bold text-zinc-400 hidden">Project Gallery</h4>
+            <div id="panel-gallery" class="flex flex-col gap-4"></div>
+        </div>
+        
+        <div class="space-y-3 pt-4 border-t border-black/5">
+            <h4 class="text-xs uppercase tracking-widest font-bold text-zinc-400">Project Specs (Click to filter canvas)</h4>
+            <div id="panel-tags" class="flex flex-wrap gap-2"></div>
+        </div>
+    </div>
+</aside>
+
+    <script>
+        // --- 1. DATA STRUCTURE ---
+        const projectsData = [
+        //logo
+        { id: 100, title: "Thomas Gould", pinned: true, category: ["commercial","concept","craft"], image: "images/octologo.jpg", wUnits: 1, hUnits: 3, desc: "I am a charasmatic, high energy maker with a love for art, music, food and high adrenaline sport. I gradutaed from Arts Uniberisty Bournemouth with a Honourary Degree in Graphic Design.", tags: ["Illustration", "Logo Design"] },    
+        
+        //photography 
+        {id: "photo-church", title: "Baptsim Service for St Swithun's Church", category: "commercial", image: "images/photo/church/church-hero.jpg", wUnits: 2, hUnits: 3, desc: "An architectural deep-dive capturing long-exposure cyberpunk night-scapes. This series focuses on the sharp juxtaposition between classical structures and glowing commercial neon advertisements illuminating the modern night sky.", tags: ["Photography", "Church", "Editorial"] ,gallery:
+            ["images/photo/church/church-01.jpg", "images/photo/church/church-02.jpg", "images/photo/church/church-03.jpg", "images/photo/church/church-04.jpg", "images/photo/church/church-05.jpg", "images/photo/church/church-06.jpg", "images/photo/church/church-07.jpg", "images/photo/church/church-08.jpg", "images/photo/church/church-09.jpg", "images/photo/church/church-10.jpg", "images/photo/church/church-11.jpg", "images/photo/church/church-12.jpg", "images/photo/church/church-13.jpg", "images/photo/church/church-14.jpg", "images/photo/church/church-15.jpg", "images/photo/church/church-16.jpg", "images/photo/church/church-17.jpg", "images/photo/church/church-18.jpg", "images/photo/church/church-19.jpg", "images/photo/church/church-20.jpg", "images/photo/church/church-21.jpg", "images/photo/church/church-22.jpg", "images/photo/church/church-23.jpg", ]},
+        {id: "brenda", title: "Brenda", category: "concept", disablePanel: true, image: "images/photo/brenda.jpg", wUnits: 2, hUnits: 2.5 , desc: "nan", tags: ["Photography", "Editorial"]}, 
+        {id: "wingmirror", title: "Wingmirror", category: "concept", disablePanel: true, image: "images/photo/wingmirror.png", wUnits: 2, hUnits: 2.5 , desc: "car", tags: ["Photography", "Editorial"]},
+         
+        //brass monkey 
+        { id: "brass-coaster", title: "Brass Monkey Coaster", category: "commercial", image: "images/brass/coaster.png", wUnits: 2, hUnits:2 , gallery: [ "images/brass/mat-1.jpg", "images/brass/mat-2.jpg", "images/brass/real.jpg"], desc: "Here are the Coasters I designed for the Brass Monkey, one cicular and one a traditional Oval shape. These designs were later made into real beer mats which still currenlty sit under pints at the free house." , tags: [ "The Brass Monkey", "Coaster Design"] },
+        { id: "brass-illustration", title: "The Brass Monkey - Illistrated Logo", category: "commercial", image: "images/brass/sketch.png", wUnits: 2, hUnits: 2, desc: "I designed this illustrative logo to compliment the minimalist design of the hero logo for The Brass Monkey (See all Brass Monkey with button below).", tags: ["The Brass Monkey", "Logo Design", "Illustration",] ,gallery:
+            ["images/brass/logo-sketch.jpg", "images/brass/logo-green.jpg", "images/brass/logo-window.png"], } ,
+        { id: "brass-logo", title: "The Brass Monkey - Hero Logo", category: "commercial", image: "images/brass/logo-hero.jpg", wUnits: 2, hUnits: 2, desc: "Here shows The Brass Monkey's hero logo. They concept of a melting monkey was shared with me as an initial logo idea, which quickly developed into this design here. Its designed to be moody, masculine and recognisable.", tags: ["The Brass Monkey", "Logo Design"] , gallery: ["images/brass/logo-emblem.jpg", "images/brass/logo-gold.jpg", "images/brass/logo-neon.jpg"] },
+            
+        //dans coaster
+        { id: "dans-coaster-back", title: "Dan's Coaster", category: "concept", image: "images/dan/mat-back.png", wUnits: 1.5, hUnits:1.5, desc: "A Coaster I designed for my brother's bar featuring a playful illustrative design on one side and a humourous vector design on the other.", tags: [ "Coaster Design", "Illustration"], gallery: ["images/dan/mat-back-white.png", "images/dan/mat-front-white.png"]},
+        { id: "dans-coaster-front", title: "Dan's Coaster", category: "concept", image: "images/dan/mat-front.png", wUnits: 1.5, hUnits:1.5, desc: "A Coaster I designed for my brother's bar featuring a playful illustrative design on one side and a humourous vector design on the other.", tags: [ "Coaster Design", "Illustration"], gallery: ["images/dan/mat-front-white.png", "images/dan/mat-back-white.png"]},
+
+        { id: 3, title: "Cover1", category: "concept", image: "https://images.unsplash.com/photo-161800182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80", wUnits: 2, hUnits: 2, desc: "Generative art manipulating raw buffer streams to break digital fidelity landscapes. Using modular synthesis nodes to map distortion frequencies straight into rasterized pixel canvas formats.", tags: ["WebGL", "Generative Art", "GLSL Shaders", "Tokyo", "test"] },
+        { id: 4, title: "Poster", category: ["concept","craft"], image: "https://images.unsplash.com/hoto-1543852786-1cf6624b9987?auto=format&fit=crop&w=600&q=80", wUnits: 2, hUnits: 3, desc: "A quiet, haunting minimalist visual collection capturing forgotten industrial infrastructure in northern isolation zones during severe winter weather patterns.", tags: ["B&W Film", "Medium Format", "Hasselblad", "Fine Art"] },
+        { id: 5, title: "Bench", category: "craft", image: "https://images.unsplash.com/photo-155068488-fac1c5b4e853?auto=format&fit=crop&w=600&q=80", wUnits: 3, hUnits: 2, desc: "Experimental vector-motion design transforming classic editorial layout rules into flexible grid interfaces that respond dynamically to viewport speed changes.", tags: ["Motion Design", "After Effects", "Typography"] },
+        { id: 6, title: "Art", category: "craft", image: "https://images.unsplash.com/photo-163401789464-5c339ebe3cb4?auto=format&fit=crop&w=600&q=80", wUnits: 2, hUnits: 2, desc: "Simulating physical 3D fluid fluidities using virtual weight mechanics inside procedural engine pipelines. Capturing light ray scattering across strange metallic viscous layers.", tags: ["Blender 3D", "Cycles Engine", "Generative Art"] },
+        { id: 7, title: "Longface", category: "commercial", image: "https://images.unsplash.com/phoo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=600&q=80", wUnits: 2, hUnits: 3, desc: "A candid street-level photo investigation into social distances across incredibly crowded metropolitan hubs. Capturing unique, micro-moments of peaceful introversion.", tags: ["Street Photography", "Tokyo", "Sony A7RV", "Editorial"] },
+        { id: 8, title: "Left Handed", category: "commercial", image: "https://images.unsplash.cophoto-1531403009284-440f080d1e12?auto=format&fit=crop&w=600&q=80", wUnits: 3, hUnits: 2, desc: "Sustainable cosmetics structural mapping utilizing recycled paper textures, structural physics-fold mechanics, and premium blind-debossed typography elements.", tags: ["Packaging Design", "Branding", "Print Work"] },
+        
+        //toilet boy
+        { id: "toilet-boy", title: "Toilet Boy, Titles & Credits", category: "commercial", image: "images/toiletboy/toilet-boy.gif", wUnits: 2, hUnits: 1, desc: "I was commissioned to create the titles and credits for a short film called 'Toilet Boy'. I referenced old enlgish test papers, mark schemes and doodles within my animated designs.", tags: ["Motion", "Title Cards", "After Effects"], gallery: ["images/toiletboy/toilet-boy.gif"], },
+
+        //Eosophagus line
+        { id: "eoline-1", title: "EOSOPHAGUS LINE, 2023", category: "concept", image: "images/eoline/flicker.gif", wUnits: 2, hUnits: 1.5, desc: "In this project, myslef and a partner, Toby 'Norms' Norman, wanted to explore AI within video. We did so by creating an experimental short film using 'image generation' and 'image to video' tools within Runway. We wrote, filmed and artistically directed 'Eosphagus Line', a gothic, rotting, stomache churning short based around the London Underground. ", tags: ["Video", "AI", "Narrative"], 
+        gallery: ["images/eoline/movie.mp4", "images/eoline/model/model-0.png", "images/eoline/model/model-1.png", "images/eoline/model/model-2.png", "images/eoline/model/model-3.png", "images/eoline/model/model-4.png", "images/eoline/model/model-5.png", "images/eoline/model/model-6.png", "images/eoline/model/model-7.png", "images/eoline/model/model-8.png", "images/eoline/model/model-9.png"] },
+       
+        //Masters
+        { id: "masters-vi", title: "Two1 Masters, Visual Identity", category: "commercial", image: "images/masters/stickers.png", wUnits: 2, hUnits: 3, desc: "Visual identity design for Two1 Masters, focusing on Illustrative iconography and branding elements.", tags: ["Masters", "Visual Identity", "Branding", "Illustration"], gallery: ["images/masters/apps.jpg", "images/masters/cards.jpg", "images/masters/cap-y.jpg", "images/masters/cap-b.jpg", "images/masters/popsocket.jpg", "images/masters/px2.png", "images/masters/px1.png"] },
+        { id: "masters-icon", title: "Two1 Masters, Icon", category: "commercial", image: "images/masters/icon.png", wUnits: 2, hUnits: 2, desc: "Illustrative iconography for Two1 Masters, focusing on a bold, recognisable and playful design to represent the values of the Brand.", tags: ["Masters", "Logo Design", "Branding", "Illustration"], gallery: ["images/masters/icon.jpg", "images/masters/two1.jpg"] },
+        { id: "masters-logo", title: "Two1 Masters, Logo", category: "commercial", image: "images/masters/logo.png", wUnits: 3, hUnits: 2, desc: "Logo design for Two1 Masters, focusing on a bold, recognisable and playful design to represent the values of the Brand.", tags: ["Masters", "Logo Design", "Branding"], gallery: ["images/masters/logomock1.jpg", "images/masters/logomock2.jpg"] },
+        { id: "masters-heads", title: "Two1 Masters, Character Design", category: "commercial", image: "images/masters/heads.gif", wUnits: 2, hUnits: 2, desc: "Character design for Two1 Masters, focusing on a bold, recognisable and playful design to represent the values of the Brand.", tags: ["Masters", "Visual Identity", "Branding", "Illustration"], gallery: ["images/masters/y1.jpg", "images/masters/y2.jpg", "images/masters/y3.jpg", "images/masters/y6.jpg", "images/masters/y4.jpg", "images/masters/y5.jpg", "images/masters/y7.jpg", "images/masters/y8.jpg", "images/masters/y9.jpg", "images/masters/y10.jpg"] },
+        { id: "masters-tulip", title: "Two1 Masters, Iconography", category: "commercial", image: "images/masters/daf.png", wUnits: 2, hUnits: 2, desc: "Iconography design for Two1 Masters, focusing on a bold, recognisable and playful design to represent the values of the Brand.", tags: ["Masters", "Visual Identity", "Branding", "Illustration"], gallery: ["images/masters/y4.jpg", "images/masters/y5.jpg", "images/masters/y7.jpg", "images/masters/y8.jpg", "images/masters/y9.jpg", "images/masters/y10.jpg", "images/masters/y1.jpg", "images/masters/y2.jpg", "images/masters/y3.jpg", "images/masters/y6.jpg"] },
+        { id: "masters-loop", title: "Two1 Masters, Loop Animation", category: "commercial", image: "images/masters/loop.gif", wUnits: 2, hUnits: 2, desc: "Loop animation for Two1 Masters, focusing on a bold, recognisable and playful design to represent the values of the Brand.", tags: ["Masters", "Animation", "Branding"], gallery: ["images/masters/loop.gif"] },
+    
+        //Left Handed
+        { id: "left-handed-poster", title: "Left Handed (Chapter 4), Poster Design" , category: ["commercial", "concept"], image: "images/lefthanded/poster.jpg", wUnits: 1.5, hUnits: 2, desc: "Poster design for a Jungle Music event called 'Left Handed'. The design was inspired by the music and the culture of the Jungle scene, with a focus on bold typography and vibrant colours.", tags: ["Left Handed Events", "Poster Design", "Typography", "Illustration"], gallery: "images/lefthanded/bros.jpg",} ,
+        { id: "left-handed-badge", title: "Left Handed Football Kit Emblem" , category: ["commercial", "concept"], image: "images/lefthanded/badge.png", wUnits: 2, hUnits: 2, desc: "Here I showcase a Footabll Jersey and Badge design for Left Handed Evenets. I took inspiration from he orignal visual identity and 90's kit design. To accompany the jersey and badge, I also rendered a graphic image paying homage to one of the most iconic left hands in football.", tags: ["Left Handed Events", "Badge Design", "Kit Design",], gallery: ["images/lefthanded/shirt.jpg", "images/lefthanded/maradona.jpg", ] },
+        { id: "left-handed-maradona", title: "Left Handed 'Maradona'", category: ["commercial", "concept"], image: "images/lefthanded/maradona.jpg", wUnits: 2, hUnits: 2, desc: "Here I showcase a Footabll Jersey and Badge design for Left Handed Evenets. I took inspiration from he orignal visual identity and 90's kit design. To accompany the jersey and badge, I also rendered a graphic image paying homage to one of the most iconic left hands in football.", tags: ["Left Handed Events", "Badge Design", "Kit Design",], gallery: ["images/lefthanded/shirt.jpg", "images/lefthanded/badge.png", ] },  
+
+    ];
+
+        const viewPort = document.getElementById('scroll-viewport');
+        const canvas = document.getElementById('giant-canvas');
+        const sidePanel = document.getElementById('side-panel');
+        const activeTagIndicator = document.getElementById('active-tag-indicator');
+        const activeTagText = document.getElementById('active-tag-text');
+        
+        // --- STATE ENGINE TRACKING ---
+        let currentCategory = 'all';
+        let currentSubTag = null; // Holds our deep tag filter value
+        let items = [];
+        let currentSearchQuery = ''; // 👈 Holds the active search string
+
+// Target the input field and listen for typing
+document.getElementById('project-search').addEventListener('input', (e) => {
+    currentSearchQuery = e.target.value.toLowerCase().trim();
+
+   if (currentSearchQuery.length > 0) {
+        currentCategory = 'all';
+
+        // 2. Update button styles so "All Work" highlights visually
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            if (btn.getAttribute('data-category') === 'all') {
+                btn.className = "nav-btn px-5 py-2 rounded-full text-sm font-semibold tracking-wide transition-all bg-[#89F336] text-white";
+            } else {
+                btn.className = "nav-btn px-5 py-2 rounded-full text-sm font-semibold tracking-wide transition-all text-zinc-500 hover:text-white";
+            }
+        });
+    }
+    
+    // Trigger your existing filter machine on every keystroke!
+    updateCombinedFilters(); 
+});
+
+        const CELL_SIZE = 120; 
+        const GAP = 24;        
+
+        function createDOM() {
+            canvas.innerHTML = '';
+            items = [];
+
+            projectsData.forEach((project) => {
+                const card = document.createElement('div');
+
+                const isClickable = !project.disablePanel;
+                card.className = `project-card overflow-hidden group ${isClickable ? 'cursor-pointer' : 'cursor-default'}`;
+                
+                const pixelWidth = project.wUnits * CELL_SIZE + (project.wUnits - 1) * GAP;
+                const pixelHeight = project.hUnits * CELL_SIZE + (project.hUnits - 1) * GAP;
+                
+                card.style.width = `${pixelWidth}px`;
+                card.style.height = `${pixelHeight}px`;
+                card.setAttribute('data-id', project.id);
+                
+                card.innerHTML = `
+                    <img src="${project.image}" alt="${project.title}" class="w-full h-full object-contain">
+                    <div class="absolute inset-0 p-6 flex flex-col justify-end pointer-events-none">
+                        <h3 class="text-lg font-semibold tracking-wide text-transparent transition-colors duration-300">${project.title}</h3>
+                    </div>
+                `;
+
+                canvas.appendChild(card);
+
+                items.push({
+                    element: card,
+                    id: project.id,
+                    pinned: project.pinned,
+                    category: project.category,
+                    tags: project.tags,
+                    w: project.wUnits,
+                    h: project.hUnits,
+                    gridX: 0,
+                    gridY: 0,
+                    visible: true
+                });
+            });
+        }
+
+        // --- LAYOUT ENGINE (RESPONDS TO CAT + SUBTAG) ---
+      function generateClusterLayout() {
+    const occupiedSlots = new Set();
+
+    const claimSlots = (item, gx, gy) => {
+        for (let x = 0; x < item.w; x++) {
+            for (let y = 0; y < item.h; y++) {
+                occupiedSlots.add(`${gx + x},${gy + y}`);
+            }
+        }
+    };
+
+    const isAreaFree = (item, gx, gy) => {
+        for (let x = 0; x < item.w; x++) {
+            for (let y = 0; y < item.h; y++) {
+                if (occupiedSlots.has(`${gx + x},${gy + y}`)) return false;
+            }
+        }
+        return true;
+    };
+
+    // 1. Separate the active items
+    const activeItems = items.filter(item => item.visible);
+    
+    // 2. Find if there's a pinned project in the data array
+    const pinnedProject = activeItems.find(item => {
+        const rawData = projectsData.find(p => p.id === item.id);
+        return rawData && rawData.pinned === true;
+    });
+
+    // 3. If a pinned project exists and is visible, lock it to the absolute center (0,0)
+    if (pinnedProject) {
+        // Calculate offsets so the middle of the card aligns with (0,0)
+        const targetGridX = 0 - Math.floor(pinnedProject.w / 2);
+        const targetGridY = 0 - Math.floor(pinnedProject.h / 2);
+        
+        pinnedProject.gridX = targetGridX;
+        pinnedProject.gridY = targetGridY;
+        claimSlots(pinnedProject, targetGridX, targetGridY);
+    }
+
+    // 4. Shuffle the rest of the unpinned projects so they form a natural cloud around the center
+    const remainingItems = activeItems.filter(item => item !== pinnedProject);
+    const shuffledItems = [...remainingItems].sort(() => Math.random() - 0.5);
+
+    // 5. Run the standard clustering loop for the remaining items
+    shuffledItems.forEach(item => {
+        let radius = 0;
+        let foundSpot = false;
+
+        while (!foundSpot) {
+            for (let x = -radius; x <= radius && !foundSpot; x++) {
+                for (let y = -radius; y <= radius && !foundSpot; y++) {
+                    if (Math.abs(x) === radius || Math.abs(y) === radius) {
+                        const targetGridX = x - Math.floor(item.w / 2);
+                        const targetGridY = y - Math.floor(item.h / 2);
+
+                        if (isAreaFree(item, targetGridX, targetGridY)) {
+                            item.gridX = targetGridX;
+                            item.gridY = targetGridY;
+                            claimSlots(item, targetGridX, targetGridY);
+                            foundSpot = true;
+                        }
+                    }
+                }
+            }
+            radius++;
+        }
+    });
+
+    renderPositions();
+}
+
+        function renderPositions() {
+    let canvasCenterX = canvas.clientWidth / 2;
+    let canvasCenterY = canvas.clientHeight / 2;
+
+    // 1. Find if there is an active pinned item
+    const pinnedItem = items.find(item => {
+        const rawData = projectsData.find(p => p.id === item.id);
+        return item.visible && rawData && rawData.pinned === true;
+    });
+
+    // 2. GLOBAL OFFSET CORRECTOR:
+    // If a pinned item exists, calculate its exact mathematical center offset 
+    // from the grid anchor point and shift the global center lines.
+    if (pinnedItem) {
+        const itemPixelWidth = pinnedItem.w * CELL_SIZE + (pinnedItem.w - 1) * GAP;
+        const itemPixelHeight = pinnedItem.h * CELL_SIZE + (pinnedItem.h - 1) * GAP;
+
+        // Find how far the geometric center of the card is from its top-left slot anchor
+        const halfWidthOfCard = itemPixelWidth / 2;
+        const halfHeightOfCard = itemPixelHeight / 2;
+
+        // Shift the canvas origin so this card's geometric center aligns with absolute (0,0)
+        canvasCenterX = canvasCenterX - (pinnedItem.gridX * (CELL_SIZE + GAP)) - halfWidthOfCard;
+        canvasCenterY = canvasCenterY - (pinnedItem.gridY * (CELL_SIZE + GAP)) - halfHeightOfCard;
+    }
+
+    // 3. Render all visible items using the new globally corrected center
+    items.forEach(item => {
+        const posX = canvasCenterX + (item.gridX * (CELL_SIZE + GAP));
+        const posY = canvasCenterY + (item.gridY * (CELL_SIZE + GAP));
+
+        // Reset left/top coordinates to pure standard tracking positions
+        item.element.style.left = '0px';
+        item.element.style.top = '0px';
+
+       if (item.visible) {
+        const baseTransform = `translate3d(${posX}px, ${posY}px, 0)`;
+        
+        // Save the coordinates so the CSS hover state can read them
+        item.element.style.setProperty('--current-transform', baseTransform);
+        item.element.style.transform = `${baseTransform} scale(1)`;
+        item.element.style.opacity = '1';
+        item.element.style.pointerEvents = 'auto';
+    } else {
+        const baseTransform = `translate3d(${posX}px, ${posY}px, 0)`;
+        item.element.style.transform = `${baseTransform} scale(0)`;
+        item.element.style.opacity = '0';
+        item.element.style.pointerEvents = 'none';
+    }
+    });
+}
+
+        function jumpToCenter(smooth = true) {
+            const scrollX = (canvas.clientWidth / 2) - (window.innerWidth / 2);
+            const strokeY = (canvas.clientHeight / 2) - (window.innerHeight / 2);
+
+            viewPort.scrollTo({
+                top: strokeY,
+                left: scrollX,
+                behavior: smooth ? 'smooth' : 'auto'
+            });
+        }
+
+        // --- DRAG MOUSE LOGIC ---
+        let isDragging = false;
+        let startX, startY, scrollLeft, scrollTop;
+        let wasDragged = false;
+
+        viewPort.addEventListener('mousedown', (e) => {
+            if(e.target.closest('#nav-tabs') || e.target.closest('#recenter-btn') || e.target.closest('#side-panel') || e.target.closest('#active-tag-indicator')) return;
+            isDragging = true;
+            wasDragged = false;
+            startX = e.pageX - viewPort.offsetLeft;
+            startY = e.pageY - viewPort.offsetTop;
+            scrollLeft = viewPort.scrollLeft;
+            scrollTop = viewPort.scrollTop;
+            viewPort.style.scrollBehavior = 'auto';
+        });
+
+        viewPort.addEventListener('mouseleave', () => { isDragging = false; });
+        viewPort.addEventListener('mouseup', () => { isDragging = false; });
+
+        viewPort.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const x = e.pageX - viewPort.offsetLeft;
+            const y = e.pageY - viewPort.offsetTop;
+            const walkX = (x - startX) * 1.5; 
+            const walkY = (y - startY) * 1.5;
+            if (Math.abs(x - startX) > 5 || Math.abs(y - startY) > 5) wasDragged = true;
+            viewPort.scrollLeft = scrollLeft - walkX;
+            viewPort.scrollTop = scrollTop - walkY;
+        });
+
+        // --- SIDE PANEL MOUNT WITH REWRITTEN CLICKABLE TAGS ---
+        function openProjectPanel(projectId) {
+            const project = projectsData.find(p => String(p.id) === String(projectId));
+            if (!project) return;
+
+            
+            if (!project || project.disablePanel === true) return;
+
+            document.getElementById('panel-category').innerText = Array.isArray(project.category) ? project.category.join(' + ') : project.category;
+            document.getElementById('panel-title').innerText = project.title;
+            document.getElementById('panel-description').innerText = project.desc;
+            document.getElementById('panel-image').src = project.image;
+            document.getElementById('panel-image').alt = project.title;
+
+const galleryWrapper = document.getElementById('panel-gallery');
+    const galleryHeading = document.getElementById('gallery-heading');
+    galleryWrapper.innerHTML = ''; // Clear out past images safely
+
+    // Check if the project has extra gallery images
+    // AFTER (The multimedia media check version):
+if (project.gallery && project.gallery.length > 0) {
+    galleryHeading.classList.remove('hidden'); // Show the "Project Gallery" heading
+    
+    project.gallery.forEach(assetUrl => {
+        // Detect if the string ends in a video extension
+        const isVideo = assetUrl.endsWith('.mp4') || assetUrl.endsWith('.webm') || assetUrl.endsWith('.mov');
+
+        if (isVideo) {
+    // 1. Create a wrapper container forced to have a solid black background
+    const videoContainer = document.createElement('div');
+    videoContainer.className = "w-full rounded-lg bg-black overflow-hidden flex items-center justify-center";
+
+    // 2. Create the Video Player
+    const videoElement = document.createElement('video');
+    videoElement.src = assetUrl;
+    
+    // Changing object-cover to object-contain keeps the video aspect ratio perfect 
+    // against the black wrapper background without cropping it
+    videoElement.className = "w-full h-auto object-contain max-h-[70vh]";
+    
+    // Native controls setups
+    videoElement.controls = true;
+    videoElement.playsInline = true;
+    videoElement.preload = "metadata";
+    
+    // Put the video in the black box, and the black box into the gallery
+    videoContainer.appendChild(videoElement);
+    galleryWrapper.appendChild(videoContainer);
+} else {
+            // 2. Fall back to your standard image layout if it's a regular photo
+            const imgElement = document.createElement('img');
+            imgElement.src = assetUrl;
+            imgElement.className = "w-full rounded-lg object-cover bg-white";
+            imgElement.loading = "lazy";
+            
+            galleryWrapper.appendChild(imgElement);
+        }
+    });
+} else {
+        galleryHeading.classList.add('hidden'); // Hide heading if no extra images exist
+    }
+
+            const tagsWrapper = document.getElementById('panel-tags');
+            tagsWrapper.innerHTML = '';
+            
+            project.tags.forEach(tag => {
+                const btn = document.createElement('button');
+                btn.className = "bg-black/5 hover:bg-black/10 border border-black/5 text-zinc-700 hover:text-black text-xs px-3 py-1.5 rounded-md tracking-wide font-medium transition-all text-left";
+                btn.innerText = tag;
+                
+                // CLICK EVENT FOR SPECIFIC TAG FILTER
+                btn.addEventListener('click', () => {
+                    filterBySubTag(tag);
+                    closeProjectPanel();
+                });
+
+                tagsWrapper.appendChild(btn);
+            });
+
+            sidePanel.classList.remove('translate-x-full');
+        }
+
+        function closeProjectPanel() {
+            sidePanel.classList.add('translate-x-full');
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const card = e.target.closest('.project-card');
+            if (!card || wasDragged) return;
+            openProjectPanel(card.getAttribute('data-id'));
+        });
+
+        document.getElementById('close-panel-btn').addEventListener('click', closeProjectPanel);
+
+        // --- INTERACTIVE TAG & CATEGORY CONTROLLER ---
+function updateCombinedFilters() {
+    items.forEach(item => {
+        // 1. Fetch the original master data to check the title
+        const project = projectsData.find(p => String(p.id) === String(item.id));
+        if (!project) return;
+
+        // 2. Existing Category and Sub-Tag Rules
+        const matchesCategory = (currentCategory === 'all' || 
+            (Array.isArray(item.category) ? item.category.includes(currentCategory) : item.category === currentCategory));
+    
+        // 3. New Search Rule: Does title or tags include the search string?
+        const matchesSearch = !currentSearchQuery || 
+            project.title.toLowerCase().includes(currentSearchQuery) || 
+            project.tags.some(tag => tag.toLowerCase().includes(currentSearchQuery));
+
+        // 4. Combined Filter Rules
+        if (item.pinned === true) {
+            item.visible = true; // Pinned stays forever
+        } else if (currentSubTag) {
+            // If a HUD sub-tag is active, match sub-tag AND search query
+            item.visible = item.tags.includes(currentSubTag) && matchesSearch;
+        } else {
+            // Otherwise, match main tab category AND search query
+            item.visible = matchesCategory && matchesSearch;
+        }
+    });
+
+    generateClusterLayout();
+    
+    // Show HUD chip if a sub-tag filter is actively blocking layout nodes
+    if (currentSubTag) {
+        activeTagText.innerText = `${currentSubTag}`;
+        activeTagIndicator.classList.remove('hidden');
+        activeTagIndicator.classList.add('flex');
+    } else {
+        activeTagIndicator.classList.add('hidden');
+        activeTagIndicator.classList.remove('flex');
+    }
+    
+    setTimeout(() => jumpToCenter(true), 150);
+}
+        
+
+        function filterCategory(category) {
+            currentCategory = category;
+            updateCombinedFilters();
+        }
+
+        function filterBySubTag(tagName) {
+            currentSubTag = tagName;
+            updateCombinedFilters();
+        }
+
+        // Clear sub-tags action
+        document.getElementById('clear-tag-btn').addEventListener('click', () => {
+            currentSubTag = null;
+            updateCombinedFilters();
+        });
+
+        document.getElementById('nav-tabs').addEventListener('click', (e) => {
+            const btn = e.target.closest('.nav-btn');
+            if (!btn) return;
+
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('bg-[#89F336]', 'text-white');
+                b.classList.add('text-zinc-500', 'hover:text-black');
+            });
+            btn.classList.add('bg-[#89F336]', 'text-white');
+            btn.classList.remove('text-zinc-500', 'hover:text-black');
+
+            currentSubTag = null; // Automatically drop deep-tags if main menu tab shifts
+            filterCategory(btn.getAttribute('data-category'));
+            closeProjectPanel();
+        });
+
+        document.getElementById('recenter-btn').addEventListener('click', () => {
+            viewPort.style.scrollBehavior = 'smooth'; 
+            jumpToCenter(true);
+        });
+
+        // Initialize Base Project Execution Layers
+        createDOM();
+        filterCategory('all');
+        
+        window.addEventListener('load', () => jumpToCenter(false));
+        window.addEventListener('resize', () => jumpToCenter(false));
+    </script>
+</body>
+</html>
