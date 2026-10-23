@@ -9,6 +9,12 @@
         body {
             background-color: #ffffff;
             overflow: hidden; 
+
+            /* This stops text and elements from turning blue when dragging with a mouse */
+         -webkit-user-select: none; /* Safari */
+        -ms-user-select: none;    /* IE 10 and IE 11 */
+        user-select: none;       /* Standard syntax */
+
         }
         #scroll-viewport {
             width: 100vw;
@@ -190,12 +196,12 @@ video::backdrop {
         gallery: [ "images/clubhouse/menu/menu.png", "images/clubhouse/menu/drinks.png","images/clubhouse/menu/roast.png", "images/clubhouse/menu/snacks.png", "images/clubhouse/menu/raf.png", "images/clubhouse/menu/reel.gif" ] },
         { id: "clubhouse-reel", title: "The Club House, Menu Design", category: "commercial", image: "images/clubhouse/menu/reel.gif", wUnits: 2, hUnits: 3, desc: "Menu design for a tennis club cafe serving hearty high quality food to a high energy crowd. I combined playful type, handrawn illustartions and simple grid placement to build a menus for their Food, Drinks and Sunday Roast Dinners. ", tags: ["The Club House", "Menu Design", "Food & Drink", "Motion"], 
         gallery: [ "images/clubhouse/menu/menu.png", "images/clubhouse/menu/drinks.png","images/clubhouse/menu/roast.png", "images/clubhouse/menu/snacks.png", "images/clubhouse/menu/raf.png",] },
-        
         //victorious
         { id: "victorious-design", title: "Victorious Merch Design, The Club House", category: "commercial", image: "images/victorious/back.jpg", wUnits: 2, hUnits: 3, desc: "Merchandise design for Victorious Festival and The Club House. I designed a range of merchandise including t-shirts, hoodies, and tote bags, incorporating bold graphics and vibrant colors to capture the festival's energetic atmosphere.", tags: ["Victorious Festival", "Merchandise Design", "Graphic Design"], 
-        gallery: ["images/victorious/yellow.jpg", "images/victorious/bags.jpg", "images/victorious/blue.png", "images/victorious/front.png", "images/victorious/green.png", "images/victorious/shirt.png", "images/victorious/shelf.jpg"] }
+        gallery: ["images/victorious/yellow.jpg", "images/victorious/bags.jpg", "images/victorious/blue.png", "images/victorious/front.png", "images/victorious/green.png", "images/victorious/shirt.png", "images/victorious/shelf.jpg"] },
         { id: "victorious-logo", title: "Victorious Merch Design, The Club House", category: "commercial", image: "images/victorious/star.png", wUnits: 1.5, hUnits: 1.5, desc: "Merchandise design for Victorious Festival and The Club House. I designed a range of merchandise including t-shirts, hoodies, and tote bags, incorporating bold graphics and vibrant colors to capture the festival's energetic atmosphere.", tags: ["Victorious Festival", "Merchandise Design", "Graphic Design"], 
         gallery: ["images/victorious/yellow.jpg", "images/victorious/bags.jpg", "images/victorious/blue.png", "images/victorious/front.png", "images/victorious/green.png", "images/victorious/shirt.png", "images/victorious/shelf.jpg"] }
+
 
 
     ];
